@@ -6,6 +6,12 @@ const Talks = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedLevels, setSelectedLevels] = useState([]);
+  const [selectedDurations, setSelectedDurations] = useState([]);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     const fetchTalks = async () => {
@@ -22,6 +28,28 @@ const Talks = () => {
     fetchTalks();
   }, []);
 
+  // Helper function to get duration range
+  const getDurationRange = (duration) => {
+    if (duration <= 15) return '0-15';
+    if (duration <= 30) return '16-30';
+    if (duration <= 45) return '31-45';
+    if (duration <= 60) return '46-60';
+    return '60+';
+  };
+
+  // Get all unique tags from talks
+  const getAllTags = () => {
+    const tagSet = new Set();
+    talks.forEach(talk => {
+      if (talk.tags) {
+        talk.tags.split(',').forEach(tag => {
+          tagSet.add(tag.trim());
+        });
+      }
+    });
+    return Array.from(tagSet).sort();
+  };
+
   const filteredTalks = talks.filter(talk => {
     const matchesSearch = talk.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          talk.speaker_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -30,7 +58,48 @@ const Talks = () => {
     
     const matchesFilter = filter === 'all' || talk.talk_type === filter;
     
-    return matchesSearch && matchesFilter;
+    const matchesLevel = selectedLevels.length === 0 || selectedLevels.includes(talk.level);
+    
+    const matchesDuration = selectedDurations.length === 0 || selectedDurations.includes(getDurationRange(talk.duration));
+    
+    const matchesTags = selectedTags.length === 0 || (talk.tags && selectedTags.some(tag => 
+      talk.tags.split(',').map(t => t.trim()).includes(tag)
+    ));
+    
+    return matchesSearch && matchesFilter && matchesLevel && matchesDuration && matchesTags;
+  }).sort((a, b) => {
+    let aValue, bValue;
+    
+    switch (sortBy) {
+      case 'title':
+        aValue = a.title.toLowerCase();
+        bValue = b.title.toLowerCase();
+        break;
+      case 'speaker_name':
+        aValue = a.speaker_name.toLowerCase();
+        bValue = b.speaker_name.toLowerCase();
+        break;
+      case 'duration':
+        aValue = a.duration;
+        bValue = b.duration;
+        break;
+      case 'level':
+        const levelOrder = { beginner: 1, intermediate: 2, advanced: 3 };
+        aValue = levelOrder[a.level] || 0;
+        bValue = levelOrder[b.level] || 0;
+        break;
+      case 'created_at':
+      default:
+        aValue = new Date(a.created_at);
+        bValue = new Date(b.created_at);
+        break;
+    }
+    
+    if (sortOrder === 'asc') {
+      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
+    } else {
+      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
+    }
   });
 
   const getTalkTypeColor = (type) => {
@@ -52,6 +121,51 @@ const Talks = () => {
     return colors[level] || 'bg-gray-100 text-gray-800';
   };
 
+  // Filter handlers
+  const handleLevelChange = (level) => {
+    setSelectedLevels(prev => 
+      prev.includes(level) 
+        ? prev.filter(l => l !== level)
+        : [...prev, level]
+    );
+  };
+
+  const handleDurationChange = (duration) => {
+    setSelectedDurations(prev => 
+      prev.includes(duration) 
+        ? prev.filter(d => d !== duration)
+        : [...prev, duration]
+    );
+  };
+
+  const handleTagChange = (tag) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag)
+        : [...prev, tag]
+    );
+  };
+
+  const clearAllFilters = () => {
+    setFilter('all');
+    setSearchTerm('');
+    setSelectedLevels([]);
+    setSelectedDurations([]);
+    setSelectedTags([]);
+    setSortBy('created_at');
+    setSortOrder('desc');
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (filter !== 'all') count++;
+    if (searchTerm) count++;
+    if (selectedLevels.length > 0) count++;
+    if (selectedDurations.length > 0) count++;
+    if (selectedTags.length > 0) count++;
+    return count;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -70,38 +184,9 @@ const Talks = () => {
           </p>
         </div>
 
-        {/* Filters and Search */}
-        <div className="mb-8 bg-white p-6 rounded-lg shadow-sm">
+        {/* Search and Filter Toggle */}
+        <div className="mb-6 bg-white p-6 rounded-lg shadow-sm">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setFilter('all')}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  filter === 'all' 
-                    ? 'bg-primary-600 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                All ({talks.length})
-              </button>
-              {['keynote', 'talk', 'workshop', 'lightning'].map(type => {
-                const count = talks.filter(talk => talk.talk_type === type).length;
-                return (
-                  <button
-                    key={type}
-                    onClick={() => setFilter(type)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors capitalize ${
-                      filter === type 
-                        ? 'bg-primary-600 text-white' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {type} ({count})
-                  </button>
-                );
-              })}
-            </div>
-
             <div className="w-full md:w-auto">
               <input
                 type="text"
@@ -111,7 +196,188 @@ const Talks = () => {
                 className="w-full md:w-80 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
+            
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.5V4z" />
+                </svg>
+                Filters {getActiveFiltersCount() > 0 && `(${getActiveFiltersCount()})`}
+              </button>
+              
+              {getActiveFiltersCount() > 0 && (
+                <button
+                  onClick={clearAllFilters}
+                  className="px-4 py-2 text-red-600 hover:text-red-800 transition-colors"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
           </div>
+        </div>
+
+        {/* Advanced Filters */}
+        {showFilters && (
+          <div className="mb-6 bg-white p-6 rounded-lg shadow-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              
+              {/* Talk Type Filter */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Talk Type</h3>
+                <div className="space-y-2">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="talkType"
+                      checked={filter === 'all'}
+                      onChange={() => setFilter('all')}
+                      className="mr-2 text-primary-600 focus:ring-primary-500"
+                    />
+                    <span className="text-sm">All ({talks.length})</span>
+                  </label>
+                  {['keynote', 'talk', 'workshop', 'lightning'].map(type => {
+                    const count = talks.filter(talk => talk.talk_type === type).length;
+                    return (
+                      <label key={type} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="talkType"
+                          checked={filter === type}
+                          onChange={() => setFilter(type)}
+                          className="mr-2 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm capitalize">{type} ({count})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Level Filter */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Level</h3>
+                <div className="space-y-2">
+                  {['beginner', 'intermediate', 'advanced'].map(level => {
+                    const count = talks.filter(talk => talk.level === level).length;
+                    return (
+                      <label key={level} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedLevels.includes(level)}
+                          onChange={() => handleLevelChange(level)}
+                          className="mr-2 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm capitalize">{level} ({count})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Duration Filter */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Duration</h3>
+                <div className="space-y-2">
+                  {['0-15', '16-30', '31-45', '46-60', '60+'].map(duration => {
+                    const count = talks.filter(talk => getDurationRange(talk.duration) === duration).length;
+                    return (
+                      <label key={duration} className="flex items-center">
+                        <input
+                          type="checkbox"
+                          checked={selectedDurations.includes(duration)}
+                          onChange={() => handleDurationChange(duration)}
+                          className="mr-2 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm">{duration} min ({count})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Sort Options */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-3">Sort By</h3>
+                <div className="space-y-2">
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="created_at">Date Submitted</option>
+                    <option value="title">Title</option>
+                    <option value="speaker_name">Speaker Name</option>
+                    <option value="duration">Duration</option>
+                    <option value="level">Level</option>
+                  </select>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSortOrder('asc')}
+                      className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
+                        sortOrder === 'asc' 
+                          ? 'bg-primary-600 text-white' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Ascending
+                    </button>
+                    <button
+                      onClick={() => setSortOrder('desc')}
+                      className={`flex-1 px-3 py-2 text-sm rounded-lg transition-colors ${
+                        sortOrder === 'desc' 
+                          ? 'bg-primary-600 text-white' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                    >
+                      Descending
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tags Filter */}
+            {getAllTags().length > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-3">Tags</h3>
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                  {getAllTags().map(tag => {
+                    const count = talks.filter(talk => 
+                      talk.tags && talk.tags.split(',').map(t => t.trim()).includes(tag)
+                    ).length;
+                    return (
+                      <label key={tag} className="flex items-center bg-gray-50 px-3 py-1 rounded-full hover:bg-gray-100 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={selectedTags.includes(tag)}
+                          onChange={() => handleTagChange(tag)}
+                          className="mr-2 text-primary-600 focus:ring-primary-500"
+                        />
+                        <span className="text-sm">{tag} ({count})</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Results Summary */}
+        <div className="mb-6 flex items-center justify-between text-sm text-gray-600">
+          <span>
+            Showing {filteredTalks.length} of {talks.length} talks
+          </span>
+          {getActiveFiltersCount() > 0 && (
+            <span>
+              {getActiveFiltersCount()} filter{getActiveFiltersCount() !== 1 ? 's' : ''} applied
+            </span>
+          )}
         </div>
 
         {/* Talks Grid */}
@@ -167,12 +433,19 @@ const Talks = () => {
                   {talk.tags && (
                     <div className="flex flex-wrap gap-1 mt-3">
                       {talk.tags.split(',').map((tag, index) => (
-                        <span
+                        <button
                           key={index}
-                          className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded"
+                          onClick={() => {
+                            if (!selectedTags.includes(tag.trim())) {
+                              handleTagChange(tag.trim());
+                              setShowFilters(true);
+                            }
+                          }}
+                          className="px-2 py-1 bg-gray-50 text-gray-600 text-xs rounded hover:bg-primary-50 hover:text-primary-700 transition-colors cursor-pointer"
+                          title={`Filter by ${tag.trim()}`}
                         >
                           {tag.trim()}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   )}
