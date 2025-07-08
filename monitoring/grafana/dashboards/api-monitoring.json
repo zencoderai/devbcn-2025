@@ -1,0 +1,190 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Conference API Monitoring",
+    "tags": ["fastapi", "conference"],
+    "style": "dark",
+    "timezone": "browser",
+    "editable": true,
+    "hideControls": false,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {
+      "time_options": ["5m", "15m", "1h", "6h", "12h", "24h", "2d", "7d", "30d"]
+    },
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "refresh": "5s",
+    "schemaVersion": 16,
+    "version": 0,
+    "links": [],
+    "panels": [
+      {
+        "id": 1,
+        "title": "Request Rate",
+        "type": "graph",
+        "span": 6,
+        "fill": 1,
+        "linewidth": 2,
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"conference-api\"}[5m])",
+            "format": "time_series",
+            "legendFormat": "{{method}} {{handler}}",
+            "refId": "A"
+          }
+        ],
+        "xAxis": {
+          "show": true
+        },
+        "yAxes": [
+          {
+            "label": "requests/sec",
+            "show": true
+          },
+          {
+            "show": true
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": false,
+          "min": false,
+          "max": false,
+          "current": false,
+          "total": false,
+          "avg": false
+        },
+        "nullPointMode": "null",
+        "steppedLine": false,
+        "tooltip": {
+          "value_type": "individual"
+        },
+        "datasource": null,
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 0,
+          "y": 0
+        }
+      },
+      {
+        "id": 2,
+        "title": "Response Time (95th percentile)",
+        "type": "graph",
+        "span": 6,
+        "fill": 1,
+        "linewidth": 2,
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job=\"conference-api\"}[5m]))",
+            "format": "time_series",
+            "legendFormat": "95th percentile",
+            "refId": "A"
+          }
+        ],
+        "xAxis": {
+          "show": true
+        },
+        "yAxes": [
+          {
+            "label": "seconds",
+            "show": true
+          },
+          {
+            "show": true
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": false,
+          "min": false,
+          "max": false,
+          "current": false,
+          "total": false,
+          "avg": false
+        },
+        "nullPointMode": "null",
+        "steppedLine": false,
+        "tooltip": {
+          "value_type": "individual"
+        },
+        "datasource": null,
+        "gridPos": {
+          "h": 8,
+          "w": 12,
+          "x": 12,
+          "y": 0
+        }
+      },
+      {
+        "id": 3,
+        "title": "HTTP Status Codes",
+        "type": "graph",
+        "span": 12,
+        "fill": 1,
+        "linewidth": 2,
+        "targets": [
+          {
+            "expr": "rate(http_requests_total{job=\"conference-api\", status=~\"2..\"}[5m])",
+            "format": "time_series",
+            "legendFormat": "2xx Success",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(http_requests_total{job=\"conference-api\", status=~\"4..\"}[5m])",
+            "format": "time_series",
+            "legendFormat": "4xx Client Error",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(http_requests_total{job=\"conference-api\", status=~\"5..\"}[5m])",
+            "format": "time_series",
+            "legendFormat": "5xx Server Error",
+            "refId": "C"
+          }
+        ],
+        "xAxis": {
+          "show": true
+        },
+        "yAxes": [
+          {
+            "label": "requests/sec",
+            "show": true
+          },
+          {
+            "show": true
+          }
+        ],
+        "legend": {
+          "show": true,
+          "values": false,
+          "min": false,
+          "max": false,
+          "current": false,
+          "total": false,
+          "avg": false
+        },
+        "nullPointMode": "null",
+        "steppedLine": false,
+        "tooltip": {
+          "value_type": "individual"
+        },
+        "datasource": null,
+        "gridPos": {
+          "h": 8,
+          "w": 24,
+          "x": 0,
+          "y": 8
+        }
+      }
+    ]
+  }
+}

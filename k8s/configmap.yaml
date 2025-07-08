@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: devbcn-conference
+data:
+  POSTGRES_DB: "conference_db"
+  POSTGRES_USER: "conference_user"
+  DATABASE_URL: "postgresql://conference_user:conference_pass@postgres-service:5432/conference_db"
+  REACT_APP_API_URL: "http://backend-service:8000"
+  GF_SECURITY_ADMIN_USER: "admin"
+  DATA_SOURCE_NAME: "postgresql://conference_user:conference_pass@postgres-service:5432/conference_db?sslmode=disable"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: app-secrets
+  namespace: devbcn-conference
+type: Opaque
+data:
+  POSTGRES_PASSWORD: Y29uZmVyZW5jZV9wYXNz  # base64 encoded "conference_pass"
+  GF_SECURITY_ADMIN_PASSWORD: YWRtaW4=  # base64 encoded "admin"
