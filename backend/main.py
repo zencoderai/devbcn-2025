@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from prometheus_fastapi_instrumentator import Instrumentator
 import models
 import schemas
 import crud
@@ -10,6 +11,10 @@ from database import SessionLocal, engine
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Conference API", version="1.0.0")
+
+# Initialize Prometheus metrics
+instrumentator = Instrumentator()
+instrumentator.instrument(app).expose(app)
 
 # CORS middleware
 app.add_middleware(
@@ -31,6 +36,14 @@ def get_db():
 @app.get("/")
 def read_root():
     return {"message": "Conference API is running"}
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "Conference API",
+        "version": "1.0.0"
+    }
 
 @app.get("/conference-info")
 def get_conference_info():

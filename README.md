@@ -28,6 +28,11 @@ A full-stack conference website built with React (frontend), FastAPI (backend), 
 - Docker & Docker Compose
 - PostgreSQL database
 
+### Monitoring
+- Prometheus for metrics collection
+- Grafana for visualization and dashboards
+- PostgreSQL Exporter for database metrics
+
 ## Quick Start
 
 ### Prerequisites
@@ -51,6 +56,34 @@ A full-stack conference website built with React (frontend), FastAPI (backend), 
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8000
    - API Documentation: http://localhost:8000/docs
+
+### Monitoring Setup
+
+To set up monitoring with Prometheus and Grafana:
+
+1. **Quick setup with script**
+   ```bash
+   ./setup_monitoring.sh
+   ```
+
+2. **Manual setup**
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. **Access monitoring tools**
+   - Prometheus: http://localhost:9090
+   - Grafana: http://localhost:3001 (admin/admin)
+   - API Metrics: http://localhost:8000/metrics
+   - PostgreSQL Metrics: http://localhost:9187
+
+The Conference API Dashboard will be automatically provisioned in Grafana with metrics for:
+- Request rates and response times
+- HTTP status code distribution
+- Service health status
+- Database connections and transactions
+
+For more details, see [monitoring/README.md](monitoring/README.md).
 
 The application will automatically:
 - Set up the PostgreSQL database
@@ -114,11 +147,14 @@ The application uses a single `talks` table with the following fields:
 
 ## Docker Services
 
-The application consists of three Docker services:
+The application consists of the following Docker services:
 
 1. **frontend**: React development server
 2. **backend**: FastAPI application with hot reload
 3. **db**: PostgreSQL database
+4. **prometheus**: Metrics collection and storage
+5. **grafana**: Visualization and dashboards
+6. **postgres-exporter**: PostgreSQL metrics exporter
 
 ## API Documentation
 
